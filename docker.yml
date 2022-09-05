@@ -1,0 +1,14 @@
+---
+- name: build docker machine
+  hosts: 127.0.0.1
+  connection: local
+    #become: true
+
+  tasks:
+  - name: output some vars
+    debug:
+     var: ansible_facts['os_family']|lower
+
+  - name: import roles to setup docker
+    import_role:
+      name: docker_host
