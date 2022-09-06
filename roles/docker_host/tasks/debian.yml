@@ -7,6 +7,7 @@
       - containerd
       - runc
     state: absent
+  ignore_errors: yes
 
 - name: check needed packages for install
   ansible.builtin.apt:
