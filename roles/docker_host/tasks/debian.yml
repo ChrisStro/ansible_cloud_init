@@ -1,12 +1,12 @@
 - name: uninstall old docker versions
-  ansible.builtin.apt:
+  package:
     name: 
       - docker
       - docker-engine      
     state: absent
 
 - name: check needed packages for install
-  ansible.builtin.apt:
+  package:
     name:
       - apt-transport-https
       - ca-certificates
