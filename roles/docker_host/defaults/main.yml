@@ -42,3 +42,6 @@ docker_users: [amw]
 
 # Docker daemon options as a dict
 docker_daemon_options: {}
+
+# traefik proxy via docker_compose
+traefik_folder: '/srv/docker_services/traefik'

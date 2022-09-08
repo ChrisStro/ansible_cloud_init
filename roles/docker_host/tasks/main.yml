@@ -5,7 +5,7 @@
   import_tasks: debian.yml
   when: ansible_facts['os_family']|lower == 'debian'
 
-    #- name: Install docker stuff on debian machine 
+    #- name: Install docker stuff on debian machine
     #  import_tasks: debian.yml
     #  when: ansible_facts['os_family']|lower == 'debian'
 
@@ -46,3 +46,6 @@
 - include_tasks: docker-users.yml
   when: docker_users | length > 0
 
+# first containers
+- name: import tasks for initial traefik proxy instatnce
+  import_tasks: compose_traefik.yml

@@ -1,8 +1,8 @@
 - name: uninstall old docker versions
   package:
-    name: 
+    name:
       - docker
-      - docker-engine      
+      - docker-engine
     state: absent
 
 - name: check needed packages for install
@@ -10,6 +10,7 @@
     name:
       - apt-transport-https
       - ca-certificates
+      - python3-pip
     state: present
 
 - name: Add Docker apt key.

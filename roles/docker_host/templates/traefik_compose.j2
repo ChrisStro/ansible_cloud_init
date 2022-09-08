@@ -1,0 +1,92 @@
+version: '3'
+
+services:
+  traefik:
+    image: "traefik:latest"
+    container_name: "traefik"
+    restart: unless-stopped
+    networks:
+      - traefik_proxy
+    ports:
+      - "80:80"
+      - "443:443"
+      # (Optional) Expose Dashboard
+      #- "8080:8080"  # Don't do this in production!
+    command:
+      # provider setup docker/file
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false" # Default is true
+      - "--providers.file.filename=/file_provider.yml" # Default is true
+      - "--providers.file.watch=true"
+      # Configure entrypoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # traefik server settings
+      - "--log.level=INFO" # level: debug, info, warning, error, critical
+      - "--global.checkNewVersion=true"
+      - "--global.sendAnonymousUsage=false"
+      - "--serversTransport.insecureSkipVerify=true" # when forwarding to selfsigned
+      # certificate resolver cloudflare
+      - "--certificatesResolvers.cf-staging.acme.email=your-email@{{ansible_default_ipv4["address"]}}.sslip.io"
+      - "--certificatesResolvers.cf-staging.acme.storage=acme.json"
+      - "--certificatesResolvers.cf-staging.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory" # default is production
+      - "--certificatesResolvers.cf-staging.acme.dnsChallenge.provider=cloudflare"
+      - "--certificatesResolvers.cf-staging.acme.dnsChallenge.resolvers[0]=1.1.1.1:53"
+      - "--certificatesResolvers.cf-staging.acme.dnsChallenge.resolvers[1]=1.0.0.1:53"
+      - "--certificatesResolvers.cf-production.acme.email=your-email@{{ansible_default_ipv4["address"]}}.sslip.io"
+      - "--certificatesResolvers.cf-production.acme.storage=acme.json"
+      - "--certificatesResolvers.cf-production.acme.dnsChallenge.provider=cloudflare"
+      - "--certificatesResolvers.cf-production.acme.dnsChallenge.resolvers[0]=1.1.1.1:53"
+      - "--certificatesResolvers.cf-production.acme.dnsChallenge.resolvers[1]=1.0.0.1:53"
+      # tls on endpoint and redirection
+      - "--entrypoints.websecure.http.tls=true"
+       #- "--entrypoints.websecure.http.tls.certResolver=cloudflare-staging"
+      - "--entrypoints.websecure.http.tls.domains[0].main=home.{{ansible_default_ipv4["address"]}}.sslip.io"
+      - "--entrypoints.websecure.http.tls.domains[0].sans=*.home.{{ansible_default_ipv4["address"]}}.sslip.io"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # enable dashboard
+      - "--api=true"
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+    # cloudflare stuff
+    environment:
+      - CF_API_EMAIL=me@{{ansible_default_ipv4["address"]}}.sslip.io
+      - CF_DNS_API_TOKEN=myCloudFlareAPIKey
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./acme.json:/acme.json
+      - ./file_provider.yml:/file_provider.yml:ro
+    labels:
+      # middleware
+      # - "traefik.http.middlewares.traefik-auth.basicauth.users=USER:BASIC_AUTH_PASSWORD"
+      # - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
+      # https part
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+      - "traefik.http.routers.traefik-secure.entrypoints=websecure"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik-dashboard.{{ansible_default_ipv4["address"]}}.sslip.io`)"
+      # - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
+      # - "traefik.http.routers.traefik-secure.tls.certresolver=cloudflare-staging"
+      # - "traefik.http.routers.traefik-secure.tls.domains[0].main=sslip.de" # bind on router
+      # - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.sslip.de" # bind on router
+
+
+  whoami: # example container
+    image: "traefik/whoami"
+    container_name: "whoami-test"
+    depends_on:
+      - traefik
+    networks:
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.{{ansible_default_ipv4["address"]}}.sslip.io`)"
+      # - "traefik.http.services.whoami.loadbalancer.server.port=9000" # if custom port or if multible ports are exposed
+      # for tls
+      # - "traefik.http.routers.whoami.entrypoints=websecure" # both by default
+
+networks:
+  traefik_proxy:
+    external: true

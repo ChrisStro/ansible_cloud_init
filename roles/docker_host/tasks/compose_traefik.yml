@@ -1,0 +1,41 @@
+- name: Install python modules need for docker_compose ansible module
+  ansible.builtin.pip:
+    name:
+      - docker
+      - docker-compose
+
+- name: create a directory {{ traefik_folder }} if it does not exist
+  ansible.builtin.file:
+    path: "{{ traefik_folder }}"
+    state: directory
+    mode: '0755'
+
+- name: create {{ traefik_folder }}/acme.json where traefik stores certificates
+  ansible.builtin.file:
+    path: "{{ traefik_folder }}/acme.json"
+    state: touch
+    mode: '600'
+
+- name: create {{ traefik_folder }}/file_provider.yml for static traefik configuration
+  ansible.builtin.file:
+    path: "{{ traefik_folder }}/file_provider.yml"
+    state: touch
+    mode: '600'
+
+- name: output docker-compose.yml for traefik proxy
+  ansible.builtin.debug:
+    msg: "{{ lookup('ansible.builtin.template', 'traefik_compose.j2') }}"
+
+- name: copy template to {{ traefik_folder }}
+  template:
+    src: "traefik_compose.j2"
+    dest: "{{ traefik_folder }}/docker-compose.yml"
+
+- name: Run `docker-compose up` again
+  community.docker.docker_compose:
+    project_src: "{{ traefik_folder }}"
+    build: false
+
+- name: Run `docker-compose up` again
+  ansible.builtin.debug:
+    msg: "try to access traefik dashboard via https://traefik-dashboard.{{ansible_default_ipv4['address']}}.sslip.io/"
