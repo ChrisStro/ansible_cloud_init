@@ -32,10 +32,10 @@
     dest: "{{ traefik_folder }}/docker-compose.yml"
 
 - name: Run `docker-compose up` again
-  community.docker.docker_compose:
+  docker_compose:
     project_src: "{{ traefik_folder }}"
     build: false
 
-- name: Run `docker-compose up` again
+- name: Output traefik url
   ansible.builtin.debug:
     msg: "try to access traefik dashboard via https://traefik-dashboard.{{ansible_default_ipv4['address']}}.sslip.io/"
